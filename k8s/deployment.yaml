@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudscale-app
+  labels:
+    app: cloudscale
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cloudscale
+  template:
+    metadata:
+      labels:
+        app: cloudscale
+    spec:
+      containers:
+        - name: cloudscale-app
+          # Image pulled from ACR - replaced by CI/CD with the real login server
+          image: jibrelfinalacr3932.azurecr.io/cloudscale-app:latest
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
