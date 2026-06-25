@@ -1,0 +1,17 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+crash.log
+
+# Azure / secrets
+*.azureauth
+.env
+
+# OS
+.DS_Store
