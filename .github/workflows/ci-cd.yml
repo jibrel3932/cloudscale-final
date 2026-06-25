@@ -1,0 +1,87 @@
+name: CloudScale CI/CD
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+env:
+  ACR_NAME: jibrelfinalacr3932
+  ACR_LOGIN_SERVER: jibrelfinalacr3932.azurecr.io
+  IMAGE_NAME: cloudscale-app
+  RESOURCE_GROUP: JibrelAbubakrJibrel-Final-rg
+  AKS_CLUSTER: JibrelAbubakrJibrel-Final-aks
+
+jobs:
+  # 1. Build and test on EVERY push
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: ./app
+        run: npm install
+
+      - name: Run tests
+        working-directory: ./app
+        run: node test.js
+
+      - name: Build Docker image
+        run: docker build -t $IMAGE_NAME:${{ github.sha }} .
+
+  # 2. Push image to ACR - only on push to main
+  push-to-acr:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build and push image to ACR
+        run: |
+          az acr login --name $ACR_NAME
+          docker build -t $ACR_LOGIN_SERVER/$IMAGE_NAME:${{ github.sha }} -t $ACR_LOGIN_SERVER/$IMAGE_NAME:latest .
+          docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:${{ github.sha }}
+          docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
+
+  # 3. Deploy to AKS - protected by a manual approval gate (environment: production)
+  deploy-to-aks:
+    needs: push-to-acr
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production   # <-- Manual approval gate configured in repo Settings > Environments
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS credentials
+        run: az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_CLUSTER --overwrite-existing
+
+      - name: Update deployment image to current build
+        run: |
+          sed -i "s|image: .*cloudscale-app:.*|image: $ACR_LOGIN_SERVER/$IMAGE_NAME:${{ github.sha }}|" k8s/deployment.yaml
+
+      - name: Deploy to AKS
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl rollout status deployment/cloudscale-app
