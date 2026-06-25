@@ -1,0 +1,13 @@
+{
+  "name": "cloudscale-app",
+  "version": "1.0.0",
+  "description": "CloudScale Final Project - containerized web app for AKS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node -e \"const http=require('http');const s=require('./server.js');console.log('test ok');process.exit(0)\""
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
