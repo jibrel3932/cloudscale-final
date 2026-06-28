@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 env:
-  ACR_NAME: jibrelfinalacr3932
-  ACR_LOGIN_SERVER: jibrelfinalacr3932.azurecr.io
+  ACR_NAME: jibrelacr3932b
+  ACR_LOGIN_SERVER: jibrelacr3932b.azurecr.io
   IMAGE_NAME: cloudscale-app
   RESOURCE_GROUP: JibrelAbubakrJibrel-Final-rg
   AKS_CLUSTER: JibrelAbubakrJibrel-Final-aks
